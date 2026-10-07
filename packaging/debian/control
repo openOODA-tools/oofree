@@ -1,0 +1,14 @@
+Source: oofree
+Section: utils
+Priority: optional
+Maintainer: openOODA-tools <ops@openooda.org>
+Standards-Version: 4.6.2
+Build-Depends: debhelper-compat (= 13)
+
+Package: oofree
+Architecture: amd64
+Depends: libc6
+Description: MEMORY AUDITOR
+ Displays total, free, cached, buffers, and swap memory with unit conversions.
+ Capability-bounded openOODA utility with zero ambient authority,
+ oote theme palettes, and native Model Context Protocol (MCP) surface.

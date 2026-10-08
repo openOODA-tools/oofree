@@ -1,9 +1,9 @@
 # Maintainer: openOODA-tools <ops@openooda.org>
 pkgname=oofree-bin
 _pkgname=oofree
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
-pkgdesc="Displays total, free, cached, buffers, and swap memory with unit conversions."
+pkgdesc="Sovereign memory auditor and kernel RAM/swap telemetry engine in pure openOODA."
 arch=('x86_64')
 url="https://github.com/openOODA-tools/oofree"
 license=('Apache-2.0')

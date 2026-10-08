@@ -1,0 +1,107 @@
+// # Memory Entry Data Structures
+//
+// Logline: Typed records for kernel memory telemetry, swap metrics, and formatting parameters.
+//
+// Setup: Pure data definitions representing /proc/meminfo counters and display configurations.
+//
+// Beats:
+//   1. Define MemStats containing raw procfs memory metrics in kilobytes.
+//   2. Define DerivedMem containing computed values, utilization percentages, and risk scores.
+//   3. Define DisplayConfig capturing command line switches and unit scalers.
+//   4. Define factory constructors for empty records and sandboxed fallbacks.
+
+pub type MemStats = struct {
+    mem_total_kb: Int,
+    mem_free_kb: Int,
+    mem_avail_kb: Int,
+    buffers_kb: Int,
+    cached_kb: Int,
+    srecl_kb: Int,
+    shmem_kb: Int,
+    swap_total_kb: Int,
+    swap_free_kb: Int,
+    commit_limit_kb: Int,
+    committed_as_kb: Int,
+    active_anon_kb: Int,
+    inactive_anon_kb: Int,
+    active_file_kb: Int,
+    inactive_file_kb: Int,
+    dirty_kb: Int,
+    slab_kb: Int
+};
+
+pub type DerivedMem = struct {
+    used_kb: Int,
+    buff_cache_kb: Int,
+    swap_used_kb: Int,
+    ram_pct_x100: Int,
+    swap_pct_x100: Int,
+    commit_pct_x100: Int,
+    pressure_level: String
+};
+
+pub type DisplayConfig = struct {
+    unit_mode: String,
+    wide: Bool,
+    total_line: Bool,
+    json_mode: Bool,
+    demo: Bool,
+    help: Bool,
+    version: Bool
+};
+
+pub fn empty_mem_stats() -> MemStats {
+    return MemStats {
+        mem_total_kb: 0,
+        mem_free_kb: 0,
+        mem_avail_kb: 0,
+        buffers_kb: 0,
+        cached_kb: 0,
+        srecl_kb: 0,
+        shmem_kb: 0,
+        swap_total_kb: 0,
+        swap_free_kb: 0,
+        commit_limit_kb: 0,
+        committed_as_kb: 0,
+        active_anon_kb: 0,
+        inactive_anon_kb: 0,
+        active_file_kb: 0,
+        inactive_file_kb: 0,
+        dirty_kb: 0,
+        slab_kb: 0
+    };
+}
+
+pub fn fallback_baseline_mem() -> MemStats {
+    return MemStats {
+        mem_total_kb: 67108864,
+        mem_free_kb: 35651584,
+        mem_avail_kb: 50331648,
+        buffers_kb: 2097152,
+        cached_kb: 12582912,
+        srecl_kb: 2097152,
+        shmem_kb: 1048576,
+        swap_total_kb: 16777216,
+        swap_free_kb: 16777216,
+        commit_limit_kb: 50331648,
+        committed_as_kb: 12582912,
+        active_anon_kb: 12582912,
+        inactive_anon_kb: 1048576,
+        active_file_kb: 8388608,
+        inactive_file_kb: 4194304,
+        dirty_kb: 10240,
+        slab_kb: 4194304
+    };
+}
+
+pub fn default_display_config() -> DisplayConfig {
+    return DisplayConfig {
+        unit_mode: "kibi",
+        wide: false,
+        total_line: false,
+        json_mode: false,
+        demo: false,
+        help: false,
+        version: false
+    };
+}

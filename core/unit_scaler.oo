@@ -1,0 +1,163 @@
+// # Memory Unit Scaler and Formatter
+//
+// Logline: Converts raw memory kilobytes into human-readable, binary, or decimal representations.
+//
+// Setup: Pure arithmetic transformations respecting standard procps unit boundaries.
+//
+// Beats:
+//   1. Implement string padding primitives for terminal column alignment.
+//   2. Compute binary human units (B, Ki, Mi, Gi, Ti) with single-digit precision.
+//   3. Compute decimal SI units (B, k, M, G, T) for power-of-1000 representations.
+//   4. Format scaled integers for explicit unit flags (-b, -k, -m, -g).
+
+pub fn pad_left(s: String, width: Int) -> String {
+    let len: Int = chars_len(s);
+    if len >= width {
+        return s;
+    }
+    let mut pad: String = "";
+    let mut i: Int = 0;
+    let diff: Int = width - len;
+    while i < diff {
+        pad = pad + " ";
+        i = i + 1;
+    }
+    return pad + s;
+}
+
+pub fn pad_right(s: String, width: Int) -> String {
+    let len: Int = chars_len(s);
+    if len >= width {
+        return s;
+    }
+    let mut pad: String = "";
+    let mut i: Int = 0;
+    let diff: Int = width - len;
+    while i < diff {
+        pad = pad + " ";
+        i = i + 1;
+    }
+    return s + pad;
+}
+
+fn format_human_binary(kb_val: Int) -> String {
+    if kb_val == 0 {
+        return "0B";
+    }
+    let bytes: Int = kb_val * 1024;
+    let kibi: Int = 1024;
+    let mebi: Int = 1048576;
+    let gibi: Int = 1073741824;
+    let tebi: Int = 1099511627776;
+
+    if bytes < kibi {
+        return bytes.to_string() + "B";
+    }
+    if bytes < mebi {
+        let v: Int = bytes / kibi;
+        let rem: Int = ((bytes % kibi) * 10) / kibi;
+        if v < 10 {
+            return v.to_string() + "." + rem.to_string() + "Ki";
+        }
+        return v.to_string() + "Ki";
+    }
+    if bytes < gibi {
+        let v: Int = bytes / mebi;
+        let rem: Int = ((bytes % mebi) * 10) / mebi;
+        if v < 10 {
+            return v.to_string() + "." + rem.to_string() + "Mi";
+        }
+        return v.to_string() + "Mi";
+    }
+    if bytes < tebi {
+        let v: Int = bytes / gibi;
+        let rem: Int = ((bytes % gibi) * 10) / gibi;
+        if v < 10 {
+            return v.to_string() + "." + rem.to_string() + "Gi";
+        }
+        return v.to_string() + "Gi";
+    }
+    let v: Int = bytes / tebi;
+    let rem: Int = ((bytes % tebi) * 10) / tebi;
+    if v < 10 {
+        return v.to_string() + "." + rem.to_string() + "Ti";
+    }
+    return v.to_string() + "Ti";
+}
+
+fn format_human_si(kb_val: Int) -> String {
+    if kb_val == 0 {
+        return "0B";
+    }
+    let bytes: Int = kb_val * 1024;
+    let kilo: Int = 1000;
+    let mega: Int = 1000000;
+    let giga: Int = 1000000000;
+    let tera: Int = 1000000000000;
+
+    if bytes < kilo {
+        return bytes.to_string() + "B";
+    }
+    if bytes < mega {
+        let v: Int = bytes / kilo;
+        let rem: Int = ((bytes % kilo) * 10) / kilo;
+        if v < 10 {
+            return v.to_string() + "." + rem.to_string() + "k";
+        }
+        return v.to_string() + "k";
+    }
+    if bytes < giga {
+        let v: Int = bytes / mega;
+        let rem: Int = ((bytes % mega) * 10) / mega;
+        if v < 10 {
+            return v.to_string() + "." + rem.to_string() + "M";
+        }
+        return v.to_string() + "M";
+    }
+    if bytes < tera {
+        let v: Int = bytes / giga;
+        let rem: Int = ((bytes % giga) * 10) / giga;
+        if v < 10 {
+            return v.to_string() + "." + rem.to_string() + "G";
+        }
+        return v.to_string() + "G";
+    }
+    let v: Int = bytes / tera;
+    let rem: Int = ((bytes % tera) * 10) / tera;
+    if v < 10 {
+        return v.to_string() + "." + rem.to_string() + "T";
+    }
+    return v.to_string() + "T";
+}
+
+pub fn format_scaled_value(kb_val: Int, unit: String) -> String {
+    if unit == "human" {
+        return format_human_binary(kb_val);
+    }
+    if unit == "si" {
+        return format_human_si(kb_val);
+    }
+    if unit == "bytes" {
+        return (kb_val * 1024).to_string();
+    }
+    if unit == "mebi" {
+        return (kb_val / 1024).to_string();
+    }
+    if unit == "gibi" {
+        return (kb_val / 1048576).to_string();
+    }
+    if unit == "tera" {
+        return (kb_val / 1073741824).to_string();
+    }
+    if unit == "kilo" {
+        return ((kb_val * 1024) / 1000).to_string();
+    }
+    if unit == "mega" {
+        return ((kb_val * 1024) / 1000000).to_string();
+    }
+    if unit == "giga" {
+        return ((kb_val * 1024) / 1000000000).to_string();
+    }
+    // Default: kibi (raw kilobytes)
+    return kb_val.to_string();
+}

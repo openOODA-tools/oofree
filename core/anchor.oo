@@ -1,0 +1,61 @@
+// # Core Subsystem Anchor
+//
+// Logline: Unified re-export and self-test harness for oofree core memory accounting.
+//
+// Setup: Exports memory structures, parser, unit scaling, and audit engine.
+//
+// Beats:
+//   1. Re-export typed memory structures and default configuration.
+//   2. Re-export procfs parser and line splitting routines.
+//   3. Re-export unit scaling and string formatting primitives.
+//   4. Execute unit verification assertions covering core math.
+
+import "core/mem_entry.oo";
+import "core/proc_parser.oo";
+import "core/unit_scaler.oo";
+import "core/memory_auditor.oo";
+
+pub fn run_core_tests() -> Bool {
+    let mut ok: Bool = true;
+
+    // Test procfs parser with synthetic meminfo slice
+    let sample: String = "MemTotal:       1024000 kB\n"
+        + "MemFree:         204800 kB\n"
+        + "MemAvailable:    614400 kB\n"
+        + "Buffers:          51200 kB\n"
+        + "Cached:          307200 kB\n"
+        + "SReclaimable:     51200 kB\n"
+        + "Shmem:            10240 kB\n"
+        + "SwapTotal:       512000 kB\n"
+        + "SwapFree:        512000 kB\n"
+        + "CommitLimit:     800000 kB\n"
+        + "Committed_AS:    300000 kB\n";
+
+    let stats: MemStats = parse_meminfo_stream(sample);
+    if stats.mem_total_kb != 1024000 {
+        ok = false;
+    }
+    if stats.mem_avail_kb != 614400 {
+        ok = false;
+    }
+    if stats.buffers_kb != 51200 {
+        ok = false;
+    }
+
+    // Test unit scaling
+    let human_1g: String = format_scaled_value(1048576, "human");
+    if human_1g != "1.0Gi" {
+        ok = false;
+    }
+    let mebi_1g: String = format_scaled_value(1048576, "mebi");
+    if mebi_1g != "1024" {
+        ok = false;
+    }
+
+    // Test auditor math
+    if !run_auditor_tests() {
+        ok = false;
+    }
+
+    return ok;
+}

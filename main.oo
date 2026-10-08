@@ -1,52 +1,128 @@
 // # oofree Main Entry Point
 //
-// Logline: Displays total, free, cached, buffers, and swap memory with unit conversions.
+// Logline: Sovereign memory auditor and kernel RAM/swap telemetry engine in pure openOODA.
 //
 // Setup: Demands explicit capability tokens and standard argument list.
 //
 // Beats:
-//   1. Parse command-line options and dispatch --help, --version, or --mcp.
-//   2. Execute capability-bounded oofree operations.
-//   3. Format and output structured results to standard output.
+//   1. Handle command-line flags (--help, --version, --test, --demo, --mcp).
+//   2. Ingest /proc/meminfo via explicit FsReadCap token.
+//   3. Compute derived memory utilization and pressure levels.
+//   4. Emit tabular POSIX output or structured JSON telemetry.
+
+import "core/mem_entry.oo";
+import "core/proc_parser.oo";
+import "core/memory_auditor.oo";
+import "render/render_table.oo";
+import "render/render_json.oo";
+import "render/render_demo.oo";
+import "ipc/cli_options.oo";
+import "ipc/mcp_server.oo";
+import "anchor.oo";
 
 fn render_help() -> String {
-    return "oofree 0.1.0 (openOODA sovereign system & monitor)\n"
-        + "usage: oofree [options] [ARGUMENTS]...\n\n"
-        + "Displays total, free, cached, buffers, and swap memory with unit conversions.\n\n"
-        + "Options:\n"
-        + "  -h, --help           display this help and exit\n"
-        + "  -v, --version        output version information and exit\n"
-        + "      --json           output formatted as JSON Lines\n"
-        + "      --color <WHEN>   colorize output: auto, always, never [default: auto]\n"
-        + "      --theme <NAME>   override active oote palette\n"
-        + "      --mcp            run as Model Context Protocol stdio server\n";
+    return "oofree 0.2.0 (openOODA sovereign system & monitor)\n"
+        + "usage: oofree [options]\n\n"
+        + "Sovereign memory auditor and kernel RAM/swap telemetry engine.\n\n"
+        + "Display & Unit Options:\n"
+        + "  -b, --bytes         show output in bytes\n"
+        + "  -k, --kibi          show output in kibibytes (default)\n"
+        + "  -m, --mebi          show output in mebibytes\n"
+        + "  -g, --gibi          show output in gibibytes\n"
+        + "      --tera          show output in terabytes\n"
+        + "      --kilo          show output in kilobytes (powers of 1000)\n"
+        + "      --mega          show output in megabytes (powers of 1000)\n"
+        + "      --giga          show output in gigabytes (powers of 1000)\n"
+        + "  -h, --human         show human-readable output (powers of 1024)\n"
+        + "      --si            use powers of 1000 not 1024\n"
+        + "  -w, --wide          wide output (separate buffers and cache)\n"
+        + "  -t, --total         show aggregate total for RAM + swap\n"
+        + "  -j, --json          output structured metrics formatted as JSON\n"
+        + "  -D, --demo          interactive multi-scenario memory showcase\n"
+        + "      --test          execute internal subsystem verification suite\n"
+        + "      --mcp           run as Model Context Protocol JSON-RPC stdio server\n"
+        + "  -V, --version       output version information and exit\n"
+        + "      --help          display this help and exit\n";
 }
 
 fn render_version() -> String {
-    return "oofree 0.1.0 (openOODA sovereign system & monitor)\n";
+    return "oofree 0.2.0 (openOODA sovereign system & monitor)\n"
+        + "License: Apache License 2.0 (zero ambient authority)\n"
+        + "Architecture: x86_64 / aarch64 native binary\n";
 }
 
-fn main(args: List[String]) -> Int {
+pub fn main(
+    fr: &FsReadCap,
+    _pr: &ProcessCap,
+    _env: &EnvCap,
+    args: List[String]
+) -> Int {
     let num_args: Int = list_len(args);
     let mut i: Int = 0;
 
     while i < num_args {
         let arg: String = list_get(args, i);
-        if arg == "-h" || arg == "--help" {
+        if arg == "--help" {
             print(render_help());
             return 0;
         }
-        if arg == "-v" || arg == "--version" {
+        if arg == "-V" || arg == "--version" {
             print(render_version());
             return 0;
         }
+        if arg == "--test" {
+            if run_all_tests() {
+                print("oofree: internal anchor tests PASSED\n");
+                return 0;
+            } else {
+                print("oofree: internal anchor tests FAILED\n");
+                return 1;
+            }
+        }
         if arg == "--mcp" {
-            print("{\"jsonrpc\":\"2.0\",\"result\":{\"status\":\"ready\",\"tool\":\"oofree\"}}\n");
+            run_mcp_server(fr);
+            return 0;
+        }
+        if arg == "-D" || arg == "--demo" {
+            print(render_demo_showcase());
             return 0;
         }
         i = i + 1;
     }
 
-    print("oofree: sovereign capability-bounded utility ready\n");
+    let cfg: DisplayConfig = parse_cli_args(args);
+    if cfg.help {
+        print(render_help());
+        return 0;
+    }
+    if cfg.version {
+        print(render_version());
+        return 0;
+    }
+    if cfg.demo {
+        print(render_demo_showcase());
+        return 0;
+    }
+
+    let r: Result[String, String] = read_file(fr, "/proc/meminfo");
+    let content: String = if r.is_ok() {
+        match r { Ok(s) => s, Err(_) => "" }
+    } else {
+        ""
+    };
+
+    let stats: MemStats = if chars_len(content) > 0 {
+        parse_meminfo_stream(content)
+    } else {
+        fallback_baseline_mem()
+    };
+    let derived: DerivedMem = derive_memory_stats(stats);
+
+    if cfg.json_mode {
+        print(render_memory_json(stats, derived, cfg));
+    } else {
+        print(render_memory_table(stats, derived, cfg));
+    }
+
     return 0;
 }

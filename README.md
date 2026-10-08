@@ -10,7 +10,7 @@
 ```
 
 **Sovereign MEMORY AUDITOR**  
-*Displays total, free, cached, buffers, and swap memory with unit conversions.*  
+*Sovereign memory auditor and kernel RAM/swap telemetry engine in pure openOODA.*  
 *Two Faces, One Engine:* Modern terminal ergonomics for humans • Zero-leakage MCP for AI agents  
 Written in 100% pure [openOODA](https://github.com/openOODA).
 
@@ -54,17 +54,30 @@ oofree-uninstall
 ## 2. CLI Usage
 
 ```
-usage: oofree [options] [ARGUMENTS]...
+oofree 0.2.0 (openOODA sovereign system & monitor)
+usage: oofree [options]
 
-Displays total, free, cached, buffers, and swap memory with unit conversions.
+Sovereign memory auditor and kernel RAM/swap telemetry engine.
 
-Options:
-  -h, --help           display this help and exit
-  -v, --version        output version information and exit
-      --json           output formatted as JSON Lines
-      --color <WHEN>   colorize output: auto, always, never [default: auto]
-      --theme <NAME>   override active oote palette
-      --mcp            run as Model Context Protocol stdio server
+Display & Unit Options:
+  -b, --bytes         show output in bytes
+  -k, --kibi          show output in kibibytes (default)
+  -m, --mebi          show output in mebibytes
+  -g, --gibi          show output in gibibytes
+      --tera          show output in terabytes
+      --kilo          show output in kilobytes (powers of 1000)
+      --mega          show output in megabytes (powers of 1000)
+      --giga          show output in gigabytes (powers of 1000)
+  -h, --human         show human-readable output (powers of 1024)
+      --si            use powers of 1000 not 1024
+  -w, --wide          wide output (separate buffers and cache)
+  -t, --total         show aggregate total for RAM + swap
+  -j, --json          output structured metrics formatted as JSON
+  -D, --demo          interactive multi-scenario memory showcase
+      --test          execute internal subsystem verification suite
+      --mcp           run as Model Context Protocol JSON-RPC stdio server
+  -V, --version       output version information and exit
+      --help          display this help and exit
 ```
 
 ---
@@ -79,7 +92,12 @@ Options:
 
 ## 4. Model Context Protocol (MCP)
 
-When invoked with `--mcp`, `oofree` runs a JSON-RPC 2.0 stdio server providing structured tools for AI coding agents:
+When invoked with `--mcp`, `oofree` runs a streaming JSON-RPC 2.0 stdio server exposing 5 tools for AI coding agents:
+* `free_memory`: Query current system RAM and swap metrics formatted with unit conversions.
+* `free_swap`: Query system swap space metrics, utilization percentage, and health status.
+* `free_detailed`: Return comprehensive kernel memory counters including dirty pages, slab, and active/inactive splits.
+* `free_pressure`: Analyze RAM, swap, and commit pressure with operational risk classification.
+* `free_demo`: Run multi-scenario sovereign memory inspection showcase.
 
 ```bash
 oofree --mcp
@@ -89,7 +107,7 @@ oofree --mcp
 
 ## 5. Security & Zero Ambient Authority
 
-* **Pure Capability Bounded:** Operates strictly with explicit tokens (&ProcCap, &SysInfoCap, &McpCap). Physical absence of ambient disk/net leakage.
+* **Pure Capability Bounded:** Operates strictly with explicit tokens (`&FsReadCap`, `&ProcessCap`, `&EnvCap`, `&McpCap`). Physical absence of ambient network or write leakage.
 * **Negative-Trust Architecture:** Strict input validation and operational limits.
 * **Hermetic Binary:** Standalone zero-dependency executable.
 

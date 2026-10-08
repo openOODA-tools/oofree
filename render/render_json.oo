@@ -1,0 +1,64 @@
+// # JSON Memory Telemetry Renderer
+//
+// Logline: Serializes complete kernel memory, swap, and commit statistics into structured JSON.
+//
+// Setup: Pure string template serialization without external dependencies.
+//
+// Beats:
+//   1. Serialize RAM metrics including buffer/cache split and availability.
+//   2. Serialize Swap metrics and active percentage utilization.
+//   3. Serialize kernel CommitLimit and Committed_AS charge figures.
+//   4. Package pressure status and recommendation into machine-readable payload.
+
+import "core/mem_entry.oo";
+import "core/memory_auditor.oo";
+
+fn fmt_pct(pct_x100: Int) -> String {
+    let whole: Int = pct_x100 / 100;
+    let frac: Int = pct_x100 % 100;
+    let mut f_str: String = frac.to_string();
+    if frac < 10 {
+        f_str = "0" + f_str;
+    }
+    return whole.to_string() + "." + f_str;
+}
+
+pub fn render_memory_json(
+    stats: MemStats,
+    derived: DerivedMem,
+    cfg: DisplayConfig
+) -> String {
+    let cache_kb: Int = stats.cached_kb + stats.srecl_kb;
+    let rec: String = get_pressure_recommendation(derived);
+
+    let mut out: String = "{\n";
+    out = out + "  \"unit\": \"" + cfg.unit_mode + "\",\n";
+    out = out + "  \"mem\": {\n";
+    out = out + "    \"total\": " + stats.mem_total_kb.to_string() + ",\n";
+    out = out + "    \"used\": " + derived.used_kb.to_string() + ",\n";
+    out = out + "    \"free\": " + stats.mem_free_kb.to_string() + ",\n";
+    out = out + "    \"shared\": " + stats.shmem_kb.to_string() + ",\n";
+    out = out + "    \"buffers\": " + stats.buffers_kb.to_string() + ",\n";
+    out = out + "    \"cached\": " + cache_kb.to_string() + ",\n";
+    out = out + "    \"buff_cache\": " + derived.buff_cache_kb.to_string() + ",\n";
+    out = out + "    \"available\": " + stats.mem_avail_kb.to_string() + ",\n";
+    out = out + "    \"percent_used\": " + fmt_pct(derived.ram_pct_x100) + "\n";
+    out = out + "  },\n";
+    out = out + "  \"swap\": {\n";
+    out = out + "    \"total\": " + stats.swap_total_kb.to_string() + ",\n";
+    out = out + "    \"used\": " + derived.swap_used_kb.to_string() + ",\n";
+    out = out + "    \"free\": " + stats.swap_free_kb.to_string() + ",\n";
+    out = out + "    \"percent_used\": " + fmt_pct(derived.swap_pct_x100) + "\n";
+    out = out + "  },\n";
+    out = out + "  \"commit\": {\n";
+    out = out + "    \"commit_limit\": " + stats.commit_limit_kb.to_string() + ",\n";
+    out = out + "    \"committed_as\": " + stats.committed_as_kb.to_string() + ",\n";
+    out = out + "    \"percent_committed\": " + fmt_pct(derived.commit_pct_x100) + "\n";
+    out = out + "  },\n";
+    out = out + "  \"pressure\": {\n";
+    out = out + "    \"level\": \"" + derived.pressure_level + "\",\n";
+    out = out + "    \"recommendation\": \"" + rec + "\"\n";
+    out = out + "  }\n";
+    out = out + "}\n";
+    return out;
+}

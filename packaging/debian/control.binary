@@ -1,13 +1,9 @@
-Source: oofree
+Package: oofree
+Version: 0.2.0-1
 Section: utils
 Priority: optional
-Maintainer: openOODA-tools <ops@openooda.org>
-Standards-Version: 4.6.2
-Build-Depends: debhelper-compat (= 13)
-
-Package: oofree
 Architecture: amd64
-Depends: libc6
+Maintainer: openOODA-tools <ops@openooda.org>
 Description: MEMORY AUDITOR
  Sovereign memory auditor and kernel RAM/swap telemetry engine in pure openOODA.
  Capability-bounded openOODA utility with zero ambient authority,

@@ -1,0 +1,61 @@
+// # Command Line Option Parser
+//
+// Logline: Ingests POSIX command line arguments and populates display configuration.
+//
+// Setup: Pure argument scanning without system calls or ambient environment access.
+//
+// Beats:
+//   1. Traverse argument list extracting short and long POSIX flags.
+//   2. Configure unit modes for binary (-h, -k, -m, -g) and decimal unit scalers.
+//   3. Toggle wide display and aggregate total row formatting.
+//   4. Route help, version, demo, and JSON structured modes.
+
+import "core/mem_entry.oo";
+
+pub fn parse_cli_args(args: List[String]) -> DisplayConfig {
+    let mut cfg: DisplayConfig = default_display_config();
+    let num_args: Int = list_len(args);
+    let mut i: Int = 0;
+
+    while i < num_args {
+        let arg: String = list_get(args, i);
+
+        if arg == "--help" {
+            cfg.help = true;
+        } else if arg == "-V" || arg == "--version" {
+            cfg.version = true;
+        } else if arg == "-b" || arg == "--bytes" {
+            cfg.unit_mode = "bytes";
+        } else if arg == "-k" || arg == "--kibi" {
+            cfg.unit_mode = "kibi";
+        } else if arg == "-m" || arg == "--mebi" {
+            cfg.unit_mode = "mebi";
+        } else if arg == "-g" || arg == "--gibi" {
+            cfg.unit_mode = "gibi";
+        } else if arg == "--tera" || arg == "--tebi" {
+            cfg.unit_mode = "tera";
+        } else if arg == "--kilo" {
+            cfg.unit_mode = "kilo";
+        } else if arg == "--mega" {
+            cfg.unit_mode = "mega";
+        } else if arg == "--giga" {
+            cfg.unit_mode = "giga";
+        } else if arg == "-h" || arg == "--human" {
+            cfg.unit_mode = "human";
+        } else if arg == "--si" {
+            cfg.unit_mode = "si";
+        } else if arg == "-w" || arg == "--wide" {
+            cfg.wide = true;
+        } else if arg == "-t" || arg == "--total" {
+            cfg.total_line = true;
+        } else if arg == "-j" || arg == "--json" {
+            cfg.json_mode = true;
+        } else if arg == "-D" || arg == "--demo" {
+            cfg.demo = true;
+        }
+
+        i = i + 1;
+    }
+
+    return cfg;
+}

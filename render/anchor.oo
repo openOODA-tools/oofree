@@ -1,0 +1,51 @@
+// # Render Subsystem Anchor
+//
+// Logline: Unified re-export and self-test harness for oofree table and JSON renderers.
+//
+// Setup: Exports tabular, JSON, and demonstration rendering modules.
+//
+// Beats:
+//   1. Re-export table renderer.
+//   2. Re-export JSON serialization renderer.
+//   3. Re-export interactive demonstration showcase.
+//   4. Execute unit verification assertions covering render outputs.
+
+import "core/mem_entry.oo";
+import "core/memory_auditor.oo";
+import "render/render_table.oo";
+import "render/render_json.oo";
+import "render/render_demo.oo";
+
+pub fn run_render_tests() -> Bool {
+    let mut ok: Bool = true;
+
+    let mut s: MemStats = empty_mem_stats();
+    s.mem_total_kb = 100000;
+    s.mem_free_kb = 20000;
+    s.mem_avail_kb = 60000;
+    s.buffers_kb = 5000;
+    s.cached_kb = 30000;
+    s.srecl_kb = 5000;
+    s.swap_total_kb = 50000;
+    s.swap_free_kb = 50000;
+
+    let d: DerivedMem = derive_memory_stats(s);
+    let cfg: DisplayConfig = default_display_config();
+
+    let tbl: String = render_memory_table(s, d, cfg);
+    if chars_len(tbl) == 0 {
+        ok = false;
+    }
+
+    let json: String = render_memory_json(s, d, cfg);
+    if chars_len(json) == 0 {
+        ok = false;
+    }
+
+    let demo: String = render_demo_showcase();
+    if chars_len(demo) == 0 {
+        ok = false;
+    }
+
+    return ok;
+}

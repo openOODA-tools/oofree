@@ -1,0 +1,65 @@
+// # IPC Subsystem Anchor
+//
+// Logline: Unified re-export and self-test harness for oofree command line parsing and MCP server.
+//
+// Setup: Exports CLI option parsing, JSON field extraction, and MCP JSON-RPC protocol server.
+//
+// Beats:
+//   1. Re-export JSON field extraction primitives.
+//   2. Re-export POSIX command-line option parser.
+//   3. Re-export Model Context Protocol stdio server.
+//   4. Execute unit verification assertions covering CLI and MCP parsing.
+
+import "core/mem_entry.oo";
+import "ipc/json_field.oo";
+import "ipc/cli_options.oo";
+import "ipc/mcp_server.oo";
+
+pub fn run_ipc_tests() -> Bool {
+    let mut ok: Bool = true;
+
+    // Test JSON field extractor
+    let sample_json: String = "{\"id\":42,\"method\":\"tools/call\",\"name\":\"free_memory\",\"unit\":\"human\"}";
+    let id_val: Int = json_extract_int_field(sample_json, "id", 0);
+    if id_val != 42 {
+        ok = false;
+    }
+    let method: String = json_extract_str_field(sample_json, "method");
+    if method != "tools/call" {
+        ok = false;
+    }
+    let tool_name: String = json_extract_str_field(sample_json, "name");
+    if tool_name != "free_memory" {
+        ok = false;
+    }
+
+    // Test CLI option parsing
+    let mut test_args: List[String] = list_new();
+    test_args = list_push(test_args, "-h");
+    test_args = list_push(test_args, "-w");
+    test_args = list_push(test_args, "-t");
+    let cfg: DisplayConfig = parse_cli_args(test_args);
+    if cfg.unit_mode != "human" {
+        ok = false;
+    }
+    if !cfg.wide {
+        ok = false;
+    }
+    if !cfg.total_line {
+        ok = false;
+    }
+
+    // Test MCP init render
+    let init_resp: String = render_mcp_init("1");
+    if chars_len(init_resp) == 0 {
+        ok = false;
+    }
+
+    // Test MCP tools list render
+    let list_resp: String = render_mcp_tools_list("2");
+    if chars_len(list_resp) == 0 {
+        ok = false;
+    }
+
+    return ok;
+}

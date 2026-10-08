@@ -1,0 +1,117 @@
+// # Memory Auditor and Derived Calculations
+//
+// Logline: Computes used RAM, buffer/cache totals, swap utilization, and pressure risk.
+//
+// Setup: Pure algorithmic derivation implementing modern procps free accounting.
+//
+// Beats:
+//   1. Calculate buffer/cache aggregation from buffers, cached, and slab reclaimable.
+//   2. Derive used memory from total minus available with fallback heuristics.
+//   3. Compute fixed-point percentage utilization for RAM, swap, and commit limits.
+//   4. Assess memory pressure level and execute verification test assertions.
+
+import "core/mem_entry.oo";
+
+pub fn derive_memory_stats(stats: MemStats) -> DerivedMem {
+    let buff_cache_kb: Int = stats.buffers_kb + stats.cached_kb + stats.srecl_kb;
+    let mut used_kb: Int = 0;
+
+    if stats.mem_avail_kb > 0 {
+        used_kb = stats.mem_total_kb - stats.mem_avail_kb;
+    } else {
+        used_kb = stats.mem_total_kb - stats.mem_free_kb - buff_cache_kb;
+    }
+    if used_kb < 0 {
+        used_kb = 0;
+    }
+
+    let mut swap_used_kb: Int = stats.swap_total_kb - stats.swap_free_kb;
+    if swap_used_kb < 0 {
+        swap_used_kb = 0;
+    }
+
+    let mut ram_pct: Int = 0;
+    if stats.mem_total_kb > 0 {
+        ram_pct = (used_kb * 10000) / stats.mem_total_kb;
+    }
+
+    let mut swap_pct: Int = 0;
+    if stats.swap_total_kb > 0 {
+        swap_pct = (swap_used_kb * 10000) / stats.swap_total_kb;
+    }
+
+    let mut commit_pct: Int = 0;
+    if stats.commit_limit_kb > 0 {
+        commit_pct = (stats.committed_as_kb * 10000) / stats.commit_limit_kb;
+    }
+
+    let mut pressure: String = "NORMAL";
+    if ram_pct >= 9000 || swap_pct >= 8000 {
+        pressure = "CRITICAL";
+    } else if ram_pct >= 7500 || swap_pct >= 3000 {
+        pressure = "MODERATE";
+    }
+
+    return DerivedMem {
+        used_kb: used_kb,
+        buff_cache_kb: buff_cache_kb,
+        swap_used_kb: swap_used_kb,
+        ram_pct_x100: ram_pct,
+        swap_pct_x100: swap_pct,
+        commit_pct_x100: commit_pct,
+        pressure_level: pressure,
+    };
+}
+
+pub fn get_pressure_recommendation(derived: DerivedMem) -> String {
+    if derived.pressure_level == "CRITICAL" {
+        return "Severe memory exhaustion imminent. Evict caches or terminate runaway processes.";
+    }
+    if derived.pressure_level == "MODERATE" {
+        return "Elevated memory utilization. Monitor background allocations and swap activity.";
+    }
+    return "Memory posture healthy. Ample headroom available for system and application workloads.";
+}
+
+pub fn run_auditor_tests() -> Bool {
+    let mut s: MemStats = empty_mem_stats();
+    s.mem_total_kb = 1000000;
+    s.mem_free_kb = 200000;
+    s.mem_avail_kb = 600000;
+    s.buffers_kb = 50000;
+    s.cached_kb = 300000;
+    s.srecl_kb = 50000;
+    s.swap_total_kb = 500000;
+    s.swap_free_kb = 400000;
+    s.commit_limit_kb = 800000;
+    s.committed_as_kb = 200000;
+
+    let d: DerivedMem = derive_memory_stats(s);
+
+    let mut ok: Bool = true;
+    // used = total - avail = 1000000 - 600000 = 400000
+    if d.used_kb != 400000 {
+        ok = false;
+    }
+    // buff_cache = 50000 + 300000 + 50000 = 400000
+    if d.buff_cache_kb != 400000 {
+        ok = false;
+    }
+    // swap_used = 500000 - 400000 = 100000
+    if d.swap_used_kb != 100000 {
+        ok = false;
+    }
+    // ram_pct = 400000 * 10000 / 1000000 = 4000 (40.00%)
+    if d.ram_pct_x100 != 4000 {
+        ok = false;
+    }
+    // swap_pct = 100000 * 10000 / 500000 = 2000 (20.00%)
+    if d.swap_pct_x100 != 2000 {
+        ok = false;
+    }
+    // pressure = NORMAL
+    if d.pressure_level != "NORMAL" {
+        ok = false;
+    }
+    return ok;
+}

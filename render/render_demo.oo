@@ -1,0 +1,73 @@
+// # Memory Telemetry Demonstration Showcase
+//
+// Logline: Formats multi-case memory states illustrating baseline, pressure, and wide views.
+//
+// Setup: Composes formatted tables and diagnostic breakdowns using synthetic test fixtures.
+//
+// Beats:
+//   1. Build baseline workstation memory fixture and human-scaled table.
+//   2. Build high-pressure low-memory fixture with active swap spillover.
+//   3. Build wide-view buffer and cache breakdown table.
+//   4. Package into styled terminal showcase banner with ANSI headers.
+
+import "core/mem_entry.oo";
+import "core/memory_auditor.oo";
+import "render/render_table.oo";
+
+pub fn render_demo_showcase() -> String {
+    let mut out: String = "======================================================================\n"
+        + "       oofree: Sovereign Memory & Kernel Telemetry Showcase\n"
+        + "======================================================================\n\n";
+
+    // Scenario 1: Standard Workstation Baseline
+    out = out + "[SCENARIO 1: Standard Workstation (64GiB RAM, Human Scaling -h)]\n";
+    let mut s1: MemStats = empty_mem_stats();
+    s1.mem_total_kb = 67108864; // 64 GiB
+    s1.mem_free_kb = 35651584;  // 34 GiB
+    s1.mem_avail_kb = 50331648; // 48 GiB
+    s1.buffers_kb = 2097152;    // 2 GiB
+    s1.cached_kb = 12582912;    // 12 GiB
+    s1.srecl_kb = 2097152;     // 2 GiB
+    s1.shmem_kb = 1048576;      // 1 GiB
+    s1.swap_total_kb = 16777216; // 16 GiB
+    s1.swap_free_kb = 16777216;
+    s1.commit_limit_kb = 50331648;
+    s1.committed_as_kb = 12582912;
+
+    let d1: DerivedMem = derive_memory_stats(s1);
+    let mut c1: DisplayConfig = default_display_config();
+    c1.unit_mode = "human";
+    out = out + render_memory_table(s1, d1, c1) + "\n";
+
+    // Scenario 2: High Memory Pressure with Swap Spillover
+    out = out + "[SCENARIO 2: Severe Memory Pressure (95% RAM, Swap Spillover)]\n";
+    let mut s2: MemStats = empty_mem_stats();
+    s2.mem_total_kb = 33554432; // 32 GiB
+    s2.mem_free_kb = 1048576;   // 1 GiB
+    s2.mem_avail_kb = 1572864;  // 1.5 GiB
+    s2.buffers_kb = 262144;
+    s2.cached_kb = 524288;
+    s2.srecl_kb = 262144;
+    s2.shmem_kb = 524288;
+    s2.swap_total_kb = 16777216; // 16 GiB
+    s2.swap_free_kb = 2097152;   // 2 GiB free -> 14 GiB used!
+    s2.commit_limit_kb = 33554432;
+    s2.committed_as_kb = 40000000;
+
+    let d2: DerivedMem = derive_memory_stats(s2);
+    let mut c2: DisplayConfig = default_display_config();
+    c2.unit_mode = "human";
+    c2.total_line = true;
+    out = out + render_memory_table(s2, d2, c2);
+    out = out + "Status: " + d2.pressure_level + " - " + get_pressure_recommendation(d2) + "\n\n";
+
+    // Scenario 3: Wide Mode
+    out = out + "[SCENARIO 3: Wide Mode (-w) Split Buffers & Cache]\n";
+    let mut c3: DisplayConfig = default_display_config();
+    c3.unit_mode = "mebi";
+    c3.wide = true;
+    out = out + render_memory_table(s1, d1, c3) + "\n";
+
+    out = out + "======================================================================\n";
+    return out;
+}

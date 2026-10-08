@@ -1,0 +1,99 @@
+// # Tabular Memory Renderer
+//
+// Logline: Formats standard and wide POSIX tabular memory inspection reports.
+//
+// Setup: Composes right-aligned columns and labels for Mem, Swap, and Total rows.
+//
+// Beats:
+//   1. Build column headers for standard and wide terminal views.
+//   2. Format Mem telemetry row with total, used, free, shared, and cache columns.
+//   3. Format Swap telemetry row aligned with primary memory columns.
+//   4. Append optional Total aggregate line when requested.
+
+import "core/mem_entry.oo";
+import "core/unit_scaler.oo";
+
+pub fn render_memory_table(
+    stats: MemStats,
+    derived: DerivedMem,
+    cfg: DisplayConfig
+) -> String {
+    let mut out: String = "";
+    let col_w: Int = 12;
+    let label_w: Int = 11;
+
+    let u: String = cfg.unit_mode;
+
+    if cfg.wide {
+        // Wide header
+        let hdr: String = pad_right("", label_w)
+            + pad_left("total", col_w)
+            + pad_left("used", col_w)
+            + pad_left("free", col_w)
+            + pad_left("shared", col_w)
+            + pad_left("buffers", col_w)
+            + pad_left("cache", col_w)
+            + pad_left("available", col_w)
+            + "\n";
+        out = out + hdr;
+
+        // Mem row
+        let cache_kb: Int = stats.cached_kb + stats.srecl_kb;
+        let mem_row: String = pad_right("Mem:", label_w)
+            + pad_left(format_scaled_value(stats.mem_total_kb, u), col_w)
+            + pad_left(format_scaled_value(derived.used_kb, u), col_w)
+            + pad_left(format_scaled_value(stats.mem_free_kb, u), col_w)
+            + pad_left(format_scaled_value(stats.shmem_kb, u), col_w)
+            + pad_left(format_scaled_value(stats.buffers_kb, u), col_w)
+            + pad_left(format_scaled_value(cache_kb, u), col_w)
+            + pad_left(format_scaled_value(stats.mem_avail_kb, u), col_w)
+            + "\n";
+        out = out + mem_row;
+    } else {
+        // Standard header
+        let hdr: String = pad_right("", label_w)
+            + pad_left("total", col_w)
+            + pad_left("used", col_w)
+            + pad_left("free", col_w)
+            + pad_left("shared", col_w)
+            + pad_left("buff/cache", col_w)
+            + pad_left("available", col_w)
+            + "\n";
+        out = out + hdr;
+
+        // Mem row
+        let mem_row: String = pad_right("Mem:", label_w)
+            + pad_left(format_scaled_value(stats.mem_total_kb, u), col_w)
+            + pad_left(format_scaled_value(derived.used_kb, u), col_w)
+            + pad_left(format_scaled_value(stats.mem_free_kb, u), col_w)
+            + pad_left(format_scaled_value(stats.shmem_kb, u), col_w)
+            + pad_left(format_scaled_value(derived.buff_cache_kb, u), col_w)
+            + pad_left(format_scaled_value(stats.mem_avail_kb, u), col_w)
+            + "\n";
+        out = out + mem_row;
+    }
+
+    // Swap row
+    let swap_row: String = pad_right("Swap:", label_w)
+        + pad_left(format_scaled_value(stats.swap_total_kb, u), col_w)
+        + pad_left(format_scaled_value(derived.swap_used_kb, u), col_w)
+        + pad_left(format_scaled_value(stats.swap_free_kb, u), col_w)
+        + "\n";
+    out = out + swap_row;
+
+    // Optional Total line
+    if cfg.total_line {
+        let tot_total: Int = stats.mem_total_kb + stats.swap_total_kb;
+        let tot_used: Int = derived.used_kb + derived.swap_used_kb;
+        let tot_free: Int = stats.mem_free_kb + stats.swap_free_kb;
+
+        let tot_row: String = pad_right("Total:", label_w)
+            + pad_left(format_scaled_value(tot_total, u), col_w)
+            + pad_left(format_scaled_value(tot_used, u), col_w)
+            + pad_left(format_scaled_value(tot_free, u), col_w)
+            + "\n";
+        out = out + tot_row;
+    }
+
+    return out;
+}
